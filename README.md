@@ -26,4 +26,10 @@ So an example of defining an OpenGL graphics context would be:
 #include "MauLib.h"
 ```
 
+# FUNCTIONALITY
+So far all this libray can do is draw colored triangles at postion in NDC (Normalized Device Coordinates which are coordinates between -1 and 1)\
+But I plan on adding colored rectangle support and texture drawing support at some point (and maybe other graphics backends but who knows if I'll actually get around to doing that)\
+There is an example of drawing 3 triangles (and having one of them move around) in the examples folder
+
+
 
