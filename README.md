@@ -31,5 +31,7 @@ So far all this libray can do is draw colored triangles at postion in NDC (Norma
 But I plan on adding colored rectangle support and texture drawing support at some point (and maybe other graphics backends but who knows if I'll actually get around to doing that)\
 There is an example of drawing 3 triangles (and having one of them move around) in the examples folder
 
-
+# CODE QUALITY 
+The quality of the code could definitely be improved (such as not recreating buffers every single frame and then sending it to the GPU) \
+(I also don't usually program in C but wanted to try doing it in C as a fun challenge) 
 
