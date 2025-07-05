@@ -13,12 +13,12 @@ int main() {
 	MauVec3 triPos = mauCreateVec3FromValues(0.0f, 0.0f, 0.0f);
 	MauVec4 triColor = mauCreateVec4FromValues(1.0f, 0.0f, 0.0f, 1.0f);
 	MauVec2 triDim = mauCreateVec2FromValues(0.1f, 0.1f);
-	MauTriangleColor t = mauCreateTriangleColor(&triPos, &triColor, &triDim);
+	MauColoredTriangle t = mauCreateColoredTriangle(&triPos, &triColor, &triDim);
 	
 	MauVec3 tP = mauCreateVec3FromValues(0.5f, 0.5f, 0.0f);
 	MauVec4 tC = mauCreateVec4FromValues(0.0f, 1.0f, 0.0f, 1.0f);
 	MauVec2 tD = mauCreateVec2FromValues(0.1f, 0.1f);
-	MauTriangleColor tr = mauCreateTriangleColor(&tP, &tC, &tD);
+	MauColoredTriangle tr = mauCreateColoredTriangle(&tP, &tC, &tD);
 	
 
 	MauVec3 movingTriPos = mauCreateVec3FromValues(0.0f, 0.0f, 0.0f);
@@ -40,7 +40,7 @@ int main() {
 		else if (mauGetKey(MAU_KEY_DOWN, ctx)) {
 			mauVec3SetY(&movingTriPos, movingTriPos.y - .01f);
 		}
-		MauTriangleColor movingTri = mauCreateTriangleColor(&movingTriPos, &movingTriColor, &movingTriDim);
+		MauColoredTriangle movingTri = mauCreateColoredTriangle(&movingTriPos, &movingTriColor, &movingTriDim);
 		mauBeginDrawing(ctx);
 		mauClearColor(MAU_BLACK);
 		mauDrawTriangleColor(&t, ctx);
