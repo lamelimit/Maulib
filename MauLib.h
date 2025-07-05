@@ -21,11 +21,11 @@ typedef struct MauVec2 {
 	float x;
 	float y;
 }MauVec2;
-typedef struct MauTriangleColor {
+typedef struct MauColoredTriangle {
 	MauVec3 pos;
 	MauVec4 color;
 	MauVec2 dim;
-}MauTriangleColor;
+}MauColoredTriangle;
 
 #define MAU_RED {1.0f, 0.0f, 0.0f}
 #define MAU_GREEN {0.0f, 1.0f, 0.0f}
@@ -188,11 +188,11 @@ MauVec3 mauCreateVec3FromValues(float inX, float inY, float inZ);
 MauVec4 mauCreateVec4FromValues(float inX, float inY, float inZ, float inW);
 MauVec2 mauCreateVec2FromValues(float x, float y);
 //the first vec3 is the posistion of the triangle, the vec4 is the color of the triangle, and the final vec2 is the x/y dimentions of the triangle
-MauTriangleColor mauCreateTriangleColor(MauVec3* triPos, MauVec4* triColor,MauVec2* triDim);
+MauColoredTriangle	 mauCreateColoredTriangle(MauVec3* triPos, MauVec4* triColor,MauVec2* triDim);
 float mauVec3DotProduct(MauVec3* v1, MauVec3* v2);
 float mauVec4DotProduct(MauVec4* v1, MauVec4* v2);
 float mauVec2DotProduct(MauVec2* v1, MauVec2* v2);
-void mauDrawTriangleColor(MauTriangleColor *mTri, MauContext* mCtx);
+void mauDrawTriangleColor(MauColoredTriangle *mTri, MauContext* mCtx);
 void mauEndDrawing(MauContext* mCtx);
 void mauClearColor(float r, float g, float b);
 int mauWindowShouldClose(MauContext* mCtx);
@@ -248,8 +248,8 @@ struct MauContext {
 
 
 
-MauTriangleColor mauCreateTriangleColor(MauVec3* triPos, MauVec4* triColor,MauVec2* triDim) {
-	MauTriangleColor tri;
+MauColoredTriangle mauCreateColoredTriangle(MauVec3* triPos, MauVec4* triColor,MauVec2* triDim) {
+	MauColoredTriangle tri;
 	tri.pos = *triPos;
 	tri.color = *triColor;
 	tri.dim = *triDim;
@@ -458,7 +458,7 @@ void mauInitBuffers(MauContext* mCtx) {
 
 
 }
- void mauDrawTriangleColor(MauTriangleColor* mauTri,MauContext* mCtx) {
+ void mauDrawTriangleColor(MauColoredTriangle* mauTri,MauContext* mCtx) {
 	
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
 	
