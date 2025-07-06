@@ -27,6 +27,7 @@ typedef struct MauColoredTriangle {
 	MauVec2 dim;
 }MauColoredTriangle;
 
+
 #define MAU_RED 1.0f, 0.0f, 0.0f
 #define MAU_GREEN 0.0f, 1.0f, 0.0f
 #define MAU_BLUE 0.0f, 0.0f, 1.0f
@@ -354,18 +355,22 @@ const char* getDefaultVertShaderGL() {
 	return "#version 330 core\n \
 	layout(location = 0) in vec3 inPos; \n \
 	layout(location = 1) in vec4 inColor; \n \
+	layout(location = 2) in vec2 inTex; \n \
 	out vec4 outColor; \n  \
+	out vec2 outTex; \n \
 	\n \
 	\n \
 	\n \
 	void main() {\n \
 	gl_Position = vec4(inPos, 1.0f); \n \
 	outColor = inColor; \n \
+	outTex = inTex; \n \
 	}\n\0";
 }
 const char* getDefaultFragShaderGL() {
 	return "#version 330 core\n \
 	in vec4 outColor; \n \
+	in vec2 outTex; \n \
 	out vec4 fragColor; \n \
 	\n \
 	\n \
