@@ -27,9 +27,9 @@ typedef struct MauColoredTriangle {
 	MauVec2 dim;
 }MauColoredTriangle;
 
-#define MAU_RED {1.0f, 0.0f, 0.0f}
-#define MAU_GREEN {0.0f, 1.0f, 0.0f}
-#define MAU_BLUE {0.0f, 0.0f, 1.0f}
+#define MAU_RED 1.0f, 0.0f, 0.0f
+#define MAU_GREEN 0.0f, 1.0f, 0.0f
+#define MAU_BLUE 0.0f, 0.0f, 1.0f
 #define MAU_BLACK 0.0f, 0.0f, 0.0f
 #define MAU_TRUE 1
 #define MAU_FALSE 0
