@@ -371,12 +371,16 @@ const char* getDefaultFragShaderGL() {
 	return "#version 330 core\n \
 	in vec4 outColor; \n \
 	in vec2 outTex; \n \
+	uniform sampler2D texture0; \n \
 	out vec4 fragColor; \n \
 	\n \
 	\n \
 	\n \
 	void main() {\n \
+	if(outTex < 0.0f) { \n \
 	fragColor = outColor; \n \
+	} else { \n \
+	fragColor = (texture(texture0,outTex) * outColor) \n \
 	}\n\0";
 }
 const char* getDefaultVertShader(MauContext* mCtx) {
@@ -398,9 +402,9 @@ void mauInitBuffers(MauContext* mCtx) {
 	glGenBuffers(1, &mCtx->defaultColorVBO.id);
 	glBindVertexArray(mCtx->defaultColorVAO.id);
 	glBindBuffer(GL_ARRAY_BUFFER, mCtx->defaultColorVBO.id);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
