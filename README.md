@@ -2,7 +2,8 @@
 A header only graphics framework made using OpenGL and C
 
 # DEPENDENCIES
-This library requires GLFW 3.3+ and GLAD, other than that it is completely standalone 
+This library requires GLFW 3.3+ and GLAD for opengl 3.3 core or higher, and Cglm for the math. 
+
 
 
 # USAGE
