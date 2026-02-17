@@ -4,28 +4,21 @@
 #if (!defined(MAU_OPENGL_GRAPHICS_CONTEXT))
 #define MAU_OPENGL_GRAPHICS_CONTEXT
 #endif
-
+#include "cglm/struct.h"
 typedef struct MauContext MauContext;
-typedef struct MauVec3 {
-	float x;
-	float y;
-	float z;
-}MauVec3;
-typedef struct MauVec4 {
-	float x;
-	float y;
-	float z;
-	float w;
-}MauVec4;
-typedef struct MauVec2 {
-	float x;
-	float y;
-}MauVec2;
+typedef struct MauRigidBody {
+	float height;
+	int enabled;
+}MauRigidBody;
 typedef struct MauColoredTriangle {
-	MauVec3 pos;
-	MauVec4 color;
-	MauVec2 dim;
+	vec3s pos;
+	vec4s color;
+	vec2s dim;
+	MauRigidBody body;
+	
 }MauColoredTriangle;
+
+
 
 
 #define MAU_RED 1.0f, 0.0f, 0.0f
@@ -171,29 +164,17 @@ typedef struct MauColoredTriangle {
 
 MauContext* mauCreateContext(int windowWidth, int windowHeight, const char* windowName);
 void mauSetShaders(const char* vertShaderSource, const char* fragShaderSrc, MauContext* mctx);
+void mauSetMatrices(MauContext* mctx);
 void mauBeginDrawing(MauContext* mCtx);
-void mauVec3SetX(MauVec3* v, float newX);
-void mauVec3SetY(MauVec3* v, float newY);
-void mauVec3SetZ(MauVec3* v, float newZ);
-void mauVec4SetX(MauVec4* v, float newX);
-void mauVec4SetY(MauVec4* v, float newY);
-void mauVec4SetZ(MauVec4* v, float newZ);
-void mauVec4SetW(MauVec4* v, float newW);
-void mauVec2SetX(MauVec2* v, float newX);
-void mauVec2SetY(MauVec2* v, float newY);
-void mauPrintVec2(MauVec2* v, const char* vName);
-void mauPrintVec3(MauVec3* v, const char* vName);
-void mauPrintVec4(MauVec4* v, const char* vName);
-MauVec3 mauVec3CrossProduct(MauVec3* v1, MauVec3* v2);
-MauVec3 mauCreateVec3FromValues(float inX, float inY, float inZ);
-MauVec4 mauCreateVec4FromValues(float inX, float inY, float inZ, float inW);
-MauVec2 mauCreateVec2FromValues(float x, float y);
+
+void mauPrintVec2(vec2s v, const char* vName);
+void mauPrintVec3(vec3s v, const char* vName);
+
+
 //the first vec3 is the posistion of the triangle, the vec4 is the color of the triangle, and the final vec2 is the x/y dimentions of the triangle
-MauColoredTriangle	 mauCreateColoredTriangle(MauVec3* triPos, MauVec4* triColor,MauVec2* triDim);
-float mauVec3DotProduct(MauVec3* v1, MauVec3* v2);
-float mauVec4DotProduct(MauVec4* v1, MauVec4* v2);
-float mauVec2DotProduct(MauVec2* v1, MauVec2* v2);
-void mauDrawTriangleColor(MauColoredTriangle *mTri, MauContext* mCtx);
+MauColoredTriangle	 mauCreateColoredTriangle(vec3s triPos, vec4s triColor, vec2s triDim, int rbEnabled);
+
+void mauDrawTriangleColor(MauColoredTriangle* tri, MauContext* mCtx);
 void mauEndDrawing(MauContext* mCtx);
 void mauClearColor(float r, float g, float b);
 int mauWindowShouldClose(MauContext* mCtx);
@@ -207,6 +188,7 @@ void mauDestroyContext(MauContext* mCtx);
 #include "GLFW/glfw3.h"
 #include <stdio.h>
 
+#include <math.h>
 typedef struct MauShader {
 	unsigned int id;
 	const char* src;
@@ -238,206 +220,123 @@ struct MauContext {
 	int windowWidth;
 	int windowHeight;
 	const char* windowTitle;
+	mat4 proj;
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
 	MauShaderProgram shaderProgram;
-	MauVAO defaultColorVAO;
+	MauVAO defaultTriVAO;
 	MauVBO defaultColorVBO;
-	MauVAO defaultTexVAO;
-	MauVBO defaultTexVBO;
+	int projUniformLoc;
 #endif
 };
 
 
 
-MauColoredTriangle mauCreateColoredTriangle(MauVec3* triPos, MauVec4* triColor,MauVec2* triDim) {
+
+MauColoredTriangle mauCreateColoredTriangle(vec3s triPos, vec4s triColor, vec2s triDim, int rbEnabled) {
 	MauColoredTriangle tri;
-	tri.pos = *triPos;
-	tri.color = *triColor;
-	tri.dim = *triDim;
+	tri.pos = triPos;
+	tri.color = triColor;
+	tri.dim = triDim;
+	tri.body.enabled = rbEnabled;
+	tri.body.height = triPos.y;
 	return tri;
 }
-void mauPrintVec2(MauVec2* v, const char* vName) {
-	printf("%c's x and y are: %f,%f", vName, v->x, v->y);
+
+void mauEnableRigidBody(MauColoredTriangle* tri) {
+	tri->body.enabled = MAU_TRUE;
+	tri->body.height = tri->pos.y;
 }
-int mauVec2Equals(MauVec2* v1, MauVec2* v2) {
-	if ((v1->x == v2->x) && (v1->y == v2->y)) {
-		return MAU_TRUE;
-	}
-	return MAU_FALSE;
-}
-MauVec2 mauCreateVec2FromValues(float inX, float inY) {
-	MauVec2 res;
-	res.x = inX;
-	res.y = inY;
-	return res;
-}
-float mauVec2DotProduct(MauVec2* v1, MauVec2* v2) {
-	return (v1->x * v2->x) + (v1->y * v2->y);
-}
-void mauVec2SetX(MauVec2* v, float newX) {
-	v->x = newX;
-}
-void mauVec2SetY(MauVec2* v, float newY) {
-	v->y = newY;
+void mauPrintVec2(vec2s v, const char* vName) {
+	printf("%s's x and y are: %f,%f\n", vName, v.x, v.y);
 }
 
-void mauPrintVec3(MauVec3* v, const char* vName) {
-	printf("%c's x,y, and z are: %f,%f,%f", vName, v->x, v->y,v->z);
-}
-int mauVec3Equals(MauVec3* v1, MauVec3* v2) {
-	if ((v1->x == v2->x) && (v1->y == v2->y) && (v1->z == v2->z)) {
-		return MAU_TRUE;
-	}
-	return MAU_FALSE;
+
+void mauPrintVec3(vec3s v, const char* vName) {
+	printf("%s's x,y, and z are: %f,%f,%f\n", vName, v.x, v.y, v.z);
 }
 
-MauVec3 mauCreateVec3FromValues(float inX, float inY, float inZ) {
-	MauVec3 res;
-	res.x = inX;
-	res.y = inY;
-	res.z = inZ;
-	return res;
-}
-float mauVec3DotProduct(MauVec3* v1, MauVec3* v2) {
-	return (v1->x * v2->x) + (v1->y * v2->y) + (v1->z * v2->z);
-}
-MauVec3 mauVec3CrossProduct(MauVec3* v1, MauVec3* v2) {
-	MauVec3 res;
-	res.x = (v1->y * v2->z) - (v1->z * v2->y);
-	res.y = (v1->z * v2->x) - (v1->x * v2->z);
-	res.z = (v1->x * v2->y) - (v1->y * v2->x);
-	return res;
-}
-void mauVec3SetX(MauVec3* v, float newX) {
-	v->x = newX;
-}
-void mauVec3SetY(MauVec3* v, float newY) {
-	v->y = newY;
-}
-void mauVec3SetZ(MauVec3* v, float newZ) {
-	v->z = newZ;
-}
 
-void mauPrintVec4(MauVec4* v, const char* vName) {
-	printf("%c's x,y,z, and w are: %f,%f,%f,%f", vName, v->x, v->y, v->z,v->w);
-}
-int mauVec4Equals(MauVec4* v1, MauVec4* v2) {
-	if ((v1->x == v2->x) && (v1->y == v2->y) && (v1->z == v2->z) && (v1->w == v2->w)) {
-		return MAU_TRUE;
-	}
-	return MAU_FALSE;
-}
-MauVec4 mauCreateVec4FromValues(float inX, float inY, float inZ,float inW) {
-	MauVec4 res;
-	res.x = inX;
-	res.y = inY;
-	res.z = inZ;
-	res.w = inW;
-	return res;
-}
-float mauVec4DotProduct(MauVec4* v1, MauVec4* v2) {
-	return (v1->x * v2->x) + (v1->y * v2->y) + (v1->z * v2->z) + (v1->w * v2->w);
-}
-void mauVec4SetX(MauVec4* v, float newX) {
-	v->x = newX;
-}
-void mauVec4SetY(MauVec4* v, float newY) {
-	v->y = newY;
-}
-void mauVec4SetZ(MauVec4* v, float newZ) {
-	v->z = newZ;
-}
-void mauVec4SetW(MauVec4* v, float newW) {
-	v->w = newW;
-}
+
 const char* getDefaultVertShaderGL() {
-	
+
 	return "#version 330 core\n \
 	layout(location = 0) in vec3 inPos; \n \
 	layout(location = 1) in vec4 inColor; \n \
-	layout(location = 2) in vec2 inTex; \n \
 	out vec4 outColor; \n  \
-	out vec2 outTex; \n \
+	uniform mat4 proj; \n \
 	\n \
 	\n \
 	\n \
 	void main() {\n \
-	gl_Position = vec4(inPos, 1.0f); \n \
+	gl_Position = proj * vec4(inPos, 1.0f) ; \n \
 	outColor = inColor; \n \
-	outTex = inTex; \n \
 	}\n\0";
 }
 const char* getDefaultFragShaderGL() {
 	return "#version 330 core\n \
 	in vec4 outColor; \n \
-	in vec2 outTex; \n \
-	uniform sampler2D texture0; \n \
 	out vec4 fragColor; \n \
 	\n \
 	\n \
 	\n \
 	void main() {\n \
-	if(outTex < 0.0f) { \n \
 	fragColor = outColor; \n \
-	} else { \n \
-	fragColor = (texture(texture0,outTex) * outColor) \n \
 	}\n\0";
 }
 const char* getDefaultVertShader(MauContext* mCtx) {
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-	
-		return getDefaultVertShaderGL();
+
+	return getDefaultVertShaderGL();
 #endif
 }
 const char* getDefaultFragShader(MauContext* mCtx) {
-	
+
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-		return getDefaultFragShaderGL();
+	return getDefaultFragShaderGL();
 #endif
 }
 
 void mauInitBuffers(MauContext* mCtx) {
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-	glGenVertexArrays(1, &mCtx->defaultColorVAO.id);
+	glGenVertexArrays(1, &mCtx->defaultTriVAO.id);
 	glGenBuffers(1, &mCtx->defaultColorVBO.id);
-	glBindVertexArray(mCtx->defaultColorVAO.id);
+	glBindVertexArray(mCtx->defaultTriVAO.id);
 	glBindBuffer(GL_ARRAY_BUFFER, mCtx->defaultColorVBO.id);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-	glGenBuffers(1, &mCtx->defaultTexVBO.id);
-	glGenVertexArrays(1, &mCtx->defaultTexVAO.id);
-	glBindVertexArray(mCtx->defaultTexVAO.id);
-	glBindBuffer(GL_ARRAY_BUFFER, mCtx->defaultTexVBO.id);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+
 	mCtx->defaultColorVBO.amountUsed = 0;
-	mCtx->defaultTexVBO.amountUsed = 0;
+
 #endif
 }
 
- MauContext* mauCreateContext(int windowWidth, int windowHeight, const char* windowName ) {
+void mauSetMatrices(MauContext* mCtx) {
+	glm_ortho(0.0f, mCtx->windowWidth, 0.0f, mCtx->windowHeight, -1.0f, 1.0f, mCtx->proj);
+	//printf("%f\n", mCtx->proj[0]);
+}
+
+MauContext* mauCreateContext(int windowWidth, int windowHeight, const char* windowName) {
 	//making it static so I can return the its memory adress since the lifetime of static objects  is for the entirety of the program, and thus it won't be automatically deleted at the end of the function
 	static MauContext mCtx;
-	
-	
+	glfwInit();
+
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-			glfwInit();
-			glfwWindowHint(GLFW_VERSION_MAJOR, 3);
-			glfwWindowHint(GLFW_VERSION_MINOR, 3);
-			glfwWindowHint(GLFW_OPENGL_CORE_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-			
-			
+
+	glfwWindowHint(GLFW_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_CORE_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+
 #endif
-			
-	
+
+	mCtx.windowWidth = windowWidth;
+	mCtx.windowHeight = windowHeight;
 
 	mCtx.p_Window = glfwCreateWindow(windowWidth, windowHeight, windowName, NULL, NULL);
 	if (mCtx.p_Window == NULL) {
@@ -452,144 +351,169 @@ void mauInitBuffers(MauContext* mCtx) {
 		printf("Could not create GLAD\n");
 		return NULL;
 	}
-	
-	
-	
+
+
+
 	mauSetShaders(getDefaultVertShader(&mCtx), getDefaultFragShader(&mCtx), &mCtx);
 	mauInitBuffers(&mCtx);
+	mauSetMatrices(&mCtx);
+#ifdef MAU_OPENGL_GRAPHICS_CONTEXT
+	glUseProgram(mCtx.shaderProgram.id);
+	mCtx.projUniformLoc = glGetUniformLocation(mCtx.shaderProgram.id, "proj");
+	glUniformMatrix4fv(mCtx.projUniformLoc, 1, false, mCtx.proj[0]);
+	
+#endif // MAU_OPENGL_GRAPHICS_CONTEXT
+
+
 
 	printf("Created a window!\n");
 
-	
+
 	return &mCtx;
-	
+
 
 
 
 }
- void mauDrawTriangleColor(MauColoredTriangle* mauTri,MauContext* mCtx) {
-	
+void mauDrawTriangleColor(MauColoredTriangle* mauTri, MauContext* mCtx) {
+	if (mauTri->body.enabled != MAU_FALSE) {
+		if (mauTri->pos.y > 0.0) {
+			
+			//velocity is 10. Idk what units. But it's 10.
+			float vel = 10.0;
+			//mauTri->pos.x -= vel;
+			mauTri->pos.y -= vel;
+			
+		}
+		else {
+			mauTri->body.enabled = MAU_FALSE;
+		}
+	}
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-	
-	 int am = mCtx->defaultColorVBO.amountUsed;
-	
-	 float vals[21] = {
-		 mauTri->pos.x,mauTri->pos.y,mauTri->pos.z,														mauTri->color.x,mauTri->color.y,mauTri->color.z,mauTri->color.w,
-		 (mauTri->pos.x - mauTri->dim.x),(mauTri->pos.y - mauTri->dim.y), mauTri->pos.z,				mauTri->color.x,mauTri->color.y,mauTri->color.z,mauTri->color.w,
-		 (mauTri->pos.x + mauTri->dim.x), (mauTri->pos.y - mauTri->dim.y),mauTri->pos.z,				 mauTri->color.x,mauTri->color.y, mauTri->color.z,mauTri->color.w
-	 };
-	
-	 for (int i = 0; i < 21; i++) {
-		 mCtx->defaultColorVBO.vertices[am + i] = vals[i];
-	 }
-	
-	
-	
-	
-	 mCtx->defaultColorVBO.amountUsed += (7 * 3);
 
+	int am = mCtx->defaultColorVBO.amountUsed;
+
+	float vals[21] = {
+		mauTri->pos.x,mauTri->pos.y,mauTri->pos.z,										mauTri->color.x,mauTri->color.y,mauTri->color.z,mauTri->color.w,
+		(mauTri->pos.x - mauTri->dim.x),(mauTri->pos.y - mauTri->dim.y), mauTri->pos.z,				mauTri->color.x,mauTri->color.y,mauTri->color.z,mauTri->color.w,
+		(mauTri->pos.x + mauTri->dim.x), (mauTri->pos.y - mauTri->dim.y),mauTri->pos.z,				 mauTri->color.x,mauTri->color.y, mauTri->color.z,mauTri->color.w
+	};
+
+	for (int i = 0; i < 21; i++) {
+		//printf("%i\n", am);
+		mCtx->defaultColorVBO.vertices[am + i] = vals[i];
+		//printf("%f\n", mCtx->defaultColorVBO.vertices[am + i]);
+	}
+
+
+
+
+	mCtx->defaultColorVBO.amountUsed += (7 * 3);
+	//printf("%i\n", mCtx->defaultColorVBO.amountUsed);
+	//printf("hello\n");
 #endif
- }
- 
- MauShader mauCreateShader(MauShaderParams shaderParams, MauContext* mctx) {
-	 MauShader s;
+	
+}
+
+MauShader mauCreateShader(MauShaderParams shaderParams, MauContext* mctx) {
+	MauShader s;
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-	 s.type = shaderParams.type;
-	 s.src = shaderParams.src;
-	 s.id = glCreateShader(s.type);
-	 glShaderSource(s.id, 1, &s.src, NULL);
-	 glCompileShader(s.id);
-	 {
+	s.type = shaderParams.type;
+	s.src = shaderParams.src;
+	s.id = glCreateShader(s.type);
+	glShaderSource(s.id, 1, &s.src, NULL);
+	glCompileShader(s.id);
+	{
 
-		 glGetShaderiv(s.id, GL_COMPILE_STATUS, &s.valid);
-		 if (!s.valid) {
-			 char infoLog[512];
-			 glGetShaderInfoLog(s.id, 512, NULL, infoLog);
-			 printf("Could not create shader because %s", infoLog);
-			 return;
-		 }
-	 }
-	 return s;
-#endif
-		
-	
-
-
- }
-
-
-
- MauShaderProgram mauCreateShaderProgram(MauShaderParams vertShaderParams, MauShaderParams fragShaderParams, MauContext* mCtx) {
-	
-
-	
-	
-#ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-	 MauShaderProgram sp;
-	 sp.vertShader = mauCreateShader(vertShaderParams, mCtx);
-	 sp.fragShader = mauCreateShader(fragShaderParams, mCtx);
-	 if (!sp.vertShader.valid || !sp.fragShader.valid) {
-		 sp.valid = MAU_FALSE;
-		 return;
-	 }
-	 sp.id = glCreateProgram();
-	 glAttachShader(sp.id, sp.vertShader.id);
-	 glAttachShader(sp.id, sp.fragShader.id);
-	 glLinkProgram(sp.id);
-	 {
-		 glGetProgramiv(sp.id, GL_LINK_STATUS, &sp.valid);
-		 if (!sp.valid) {
-			 char infolog[512];
-			 glGetProgramInfoLog(sp.id, 512, NULL, infolog);
-			 printf("could not create program because: %s", infolog);
-			 return;
-		 }
-	 }
-	 return sp;
+		glGetShaderiv(s.id, GL_COMPILE_STATUS, &s.valid);
+		if (!s.valid) {
+			char infoLog[512];
+			glGetShaderInfoLog(s.id, 512, NULL, infoLog);
+			printf("Could not create shader because %s", infoLog);
+			return;
+		}
+	}
+	return s;
 #endif
 
- }
 
- 
 
- void mauSetShaders(const char* vertShaderSrc, const char* fragShaderSrc, MauContext* mCtx) {
-	 
+
+}
+
+
+
+MauShaderProgram mauCreateShaderProgram(MauShaderParams vertShaderParams, MauShaderParams fragShaderParams, MauContext* mCtx) {
+
+
+
+
+#ifdef MAU_OPENGL_GRAPHICS_CONTEXT
+	MauShaderProgram sp;
+	sp.vertShader = mauCreateShader(vertShaderParams, mCtx);
+	sp.fragShader = mauCreateShader(fragShaderParams, mCtx);
+	if (!sp.vertShader.valid || !sp.fragShader.valid) {
+		sp.valid = MAU_FALSE;
+		return;
+	}
+	sp.id = glCreateProgram();
+	glAttachShader(sp.id, sp.vertShader.id);
+	glAttachShader(sp.id, sp.fragShader.id);
+	glLinkProgram(sp.id);
+	{
+		glGetProgramiv(sp.id, GL_LINK_STATUS, &sp.valid);
+		if (!sp.valid) {
+			char infolog[512];
+			glGetProgramInfoLog(sp.id, 512, NULL, infolog);
+			printf("could not create program because: %s", infolog);
+			return;
+		}
+	}
+	return sp;
+#endif
+
+}
+
+
+
+void mauSetShaders(const char* vertShaderSrc, const char* fragShaderSrc, MauContext* mCtx) {
+
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT	
-	 MauShaderProgram prog;
-	 MauShaderParams vertSp;
-	 MauShaderParams fragSp;
-	 vertSp.src = vertShaderSrc;
-	 vertSp.type = GL_VERTEX_SHADER;
+	MauShaderProgram prog;
+	MauShaderParams vertSp;
+	MauShaderParams fragSp;
+	vertSp.src = vertShaderSrc;
+	vertSp.type = GL_VERTEX_SHADER;
 
 
-	 fragSp.src = fragShaderSrc;
-	 fragSp.type = GL_FRAGMENT_SHADER;
+	fragSp.src = fragShaderSrc;
+	fragSp.type = GL_FRAGMENT_SHADER;
 
-	 prog = mauCreateShaderProgram(vertSp, fragSp, mCtx);
-	 if (!prog.valid) {
-		 return;
-	 }
-	 mCtx->shaderProgram = prog;
+	prog = mauCreateShaderProgram(vertSp, fragSp, mCtx);
+	if (!prog.valid) {
+		return;
+	}
+	mCtx->shaderProgram = prog;
 #endif	
-	
+
 }
 
 
- int mauGetKey(int key, MauContext* mCtx) {
-	 return glfwGetKey(mCtx->p_Window, key);
+int mauGetKey(int key, MauContext* mCtx) {
+	return glfwGetKey(mCtx->p_Window, key);
 }
 
 int mauWindowShouldClose(MauContext* mCtx) {
 	return glfwWindowShouldClose(mCtx->p_Window);
 }
 void mauBeginDrawing(MauContext* mCtx) {
-	
+
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-		glUseProgram(mCtx->shaderProgram.id);
-		
+	glViewport(0, 0, mCtx->windowWidth, mCtx->windowHeight);
+
 #endif
 }
-void mauClearColor (float r, float g, float b) {
+void mauClearColor(float r, float g, float b) {
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
 	glClearColor(r, g, b, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -598,15 +522,15 @@ void mauClearColor (float r, float g, float b) {
 
 void mauEndDrawing(MauContext* mCtx) {
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
-	glBindVertexArray(mCtx->defaultColorVAO.id);
+	glBindVertexArray(mCtx->defaultTriVAO.id);
 	glBindBuffer(GL_ARRAY_BUFFER, mCtx->defaultColorVBO.id);
 	glBufferData(GL_ARRAY_BUFFER, mCtx->defaultColorVBO.amountUsed * sizeof(float), mCtx->defaultColorVBO.vertices, GL_STATIC_DRAW);
-	
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-	glBindVertexArray(mCtx->defaultColorVAO.id);
-	glDrawArrays(GL_TRIANGLES, 0, mCtx->defaultColorVBO.amountUsed / 3);
-	
+	glBindVertexArray(mCtx->defaultTriVAO.id);
+	glDrawArrays(GL_TRIANGLES, 0, mCtx->defaultColorVBO.amountUsed / 7);
+
 	glBindVertexArray(0);
 	mCtx->defaultColorVBO.amountUsed = 0;
 #endif
@@ -618,9 +542,7 @@ void mauEndDrawing(MauContext* mCtx) {
 void mauDestroyContext(MauContext* mCtx) {
 #ifdef MAU_OPENGL_GRAPHICS_CONTEXT
 	glDeleteBuffers(1, &mCtx->defaultColorVBO.id);
-	glDeleteVertexArrays(1, &mCtx->defaultColorVAO.id);
-	glDeleteBuffers(1, &mCtx->defaultTexVBO.id);
-	glDeleteBuffers(1, &mCtx->defaultTexVAO.id);
+	glDeleteVertexArrays(1, &mCtx->defaultTriVAO.id);
 #endif
 	glfwTerminate();
 }
